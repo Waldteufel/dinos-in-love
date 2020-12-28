@@ -1,0 +1,11 @@
+html, body { width: 100%; height: 100%; padding: 0; margin: 0; overflow: hidden; }
+
+body { background: black; font-family: 'appleII' }
+
+#main-canvas {
+    object-fit: contain;
+    object-position: center;
+    image-rendering: crisp-edges;
+    width: 100%;
+    height: 100%
+}
