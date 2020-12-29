@@ -1,48 +1,50 @@
-import * as Entity from './entity';
+import Entity from './entity';
 
-export default class Scene extends Entity.Base {
+export default class Scene extends Entity {
     constructor(props = {}) {
         super(props);
     }
 
-    updateScene(dt) {
+    updateAll(dt) {
         let f = (node) => {
             node.update?.(dt);
+            node.sprite?.update?.(dt);
             node.children.forEach(f);
         };
 
         f(this);
     }
 
-    drawScene(ctx, canvas) {
+    drawAll(ctx, canvas) {
         let renderList = [];
-        let alpha = 1.0;
+        let alphaStack = [1.0];
+        let zStack = [0];
 
         let f = (node) => {
-            if (!node.draw && node.children.size == 0)
-                return;
-
             ctx.save();
             ctx.translate(Math.round(node.x), Math.round(node.y));
             ctx.rotate(node.angle);
             ctx.scale(node.scaleX, node.scaleY);
 
-            let oldAlpha = alpha;
+            if (node.z) {
+                zStack.push(node.z + zStack[zStack.length - 1]);
+            }
 
-            if (node.alpha)
-                alpha = alpha * node.alpha;
+            if (node.alpha != null) {
+                alphaStack.push(node.alpha * alphaStack[alphaStack.length - 1]);
+            }
 
-            let newAlpha = alpha;
-
-            if (node.draw) {
+            if (node.sprite) {
                 let transform = ctx.getTransform();
+                let z = zStack[zStack.length - 1];
+                let alpha = alphaStack[alphaStack.length - 1];
 
                 renderList.push({
-                    z: node.z,
+                    z,
                     draw() {
                         ctx.setTransform(transform);
-                        ctx.globalAlpha = newAlpha;
-                        node.draw(ctx, canvas);
+                        ctx.globalAlpha = alpha;
+                        node.sprite.draw(ctx, canvas);
                         ctx.globalAlpha = 1;
                     }
                 });
@@ -50,8 +52,15 @@ export default class Scene extends Entity.Base {
 
             node.children.forEach(f);
 
-            alpha = oldAlpha;
             ctx.restore();
+
+            if (node.z) {
+                zStack.pop();
+            }
+
+            if (node.alpha != null) {
+                alphaStack.pop();
+            }
         };
 
         f(this);

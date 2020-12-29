@@ -28,8 +28,8 @@ window.addEventListener('load', async () => {
         while (true) {
             let dt = yield;
 
-            scene.updateScene(dt);
-            scene.drawScene(ctx, canvas);
+            scene.updateAll(dt);
+            scene.drawAll(ctx, canvas);
         }
     }
 

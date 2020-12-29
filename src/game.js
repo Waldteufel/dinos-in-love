@@ -1,16 +1,27 @@
 import {ImageAsset} from './assets';
 import Scene from './scene';
-import * as Entity from './entity';
+import Entity from './entity';
+import {ImageSprite, TextSprite} from './sprites';
 import {ArrowsInput, WASDInput, GamepadInput} from './input';
 
-export class Player extends Entity.Base {
+export class Player extends Entity {
     constructor(props = {}) {
-        super(props);
-        this.input = props.input;
-        this.spriteSheet = props.spriteSheet;
-        this.sprite = new Entity.Sprite({});
-        this.addChild(this.sprite);
-        this.frozen = -1;
+        super({
+            _state: null,
+            frozen: -1,
+            ...props
+        });
+    }
+
+    get state() {
+        return this._state;
+    }
+
+    set state(value) {
+        if (this._state != value) {
+            this._state = value;
+            this.sprite = new ImageSprite(this.spriteSheet[this._state]);
+        }
     }
 
     update(dt) {
@@ -34,29 +45,32 @@ export class Player extends Entity.Base {
             direction = 'left';
         }
 
+        let newState;
+
         if (velocity.x != 0 || velocity.y != 0) {
-            if (fast) {
-                this.sprite.frames = this.spriteSheet['move fast'];
-            } else {
-                this.sprite.frames = this.spriteSheet['move slow'];
-            }
+            newState = 'moving';
         } else {
-            if (fast) {
-                this.sprite.frames = this.spriteSheet['idle fast'];
-            } else {
-                this.sprite.frames = this.spriteSheet['idle slow'];
-            }
+            newState = 'waiting';
         }
 
+        if (fast) {
+            newState += ' fast';
+        } else {
+            newState += ' slow';
+        }
+
+        this.state = newState;
+
         if (direction === 'left') {
-            this.sprite.scaleX = -1;
+            this.scaleX = -1;
         } else if (direction === 'right') {
-            this.sprite.scaleX = 1;
+            this.scaleX = 1;
         }
 
         this.x += velocity.x;
         this.y += velocity.y;
 
+        /* border collision */
         if (this.x < 12)
             this.x = 12;
         if (this.y < 16)
@@ -71,19 +85,20 @@ export class Player extends Entity.Base {
     }
 }
 
-class StartText extends Entity.Text {
-    constructor(props = {}) {
-        super(props);
-        this.alpha = 1.0;
-        this.angle = -0.5;
-        this.x = 160;
-        this.y = 50;
-        this._timer = 1000;
-        this.textAlign = 'center';
-        this.textBaseline = 'middle';
-        this.fillStyle = 'white';
-        this.font = '8px sans-serif';
-        this.text = 'START';
+class StartText extends Entity {
+    constructor(props) {
+        super({
+            _timer: 1000,
+            alpha: 1.0,
+            x: 160,
+            y: 50,
+            sprite: new TextSprite({
+                textAlign: 'center',
+                textBaseline: 'middle',
+                text: 'START'
+            }),
+            ...props
+        });
     }
 
     update(dt) {
@@ -108,22 +123,24 @@ export default async function start({canvas}) {
     let images = Object.fromEntries(await Promise.all(['doux', 'mort', 'tard', 'vita'].map(async (name, i) => {
         let image = await ImageAsset.load({src: `${name}.png`, sw: 24, sh: 24, dx: -11, dy: -20});
         return [i, {
-            'idle slow': image.frames({i: 0, n: 3, delay: 200}),
-            'idle fast': image.frames({i: 17, n: 1, delay: Infinity}),
-            'move slow': image.frames({i: 4, n: 6, delay: 100}),
-            'move fast': image.frames({i: 18, n: 6, delay: 100}),
-            'freeze': [image.frame({i: 14, delay: 50}), image.frame({i: 16, delay: 50})]
+            'waiting slow': image.frames({i: 0, n: 3, delay: 200}),
+            'waiting fast': image.frames({i: 17, n: 1, delay: Infinity}),
+            'moving slow': image.frames({i: 4, n: 6, delay: 100}),
+            'moving fast': image.frames({i: 18, n: 6, delay: 100}),
+            'frozen': [image.frame({i: 14, delay: 50}), image.frame({i: 16, delay: 50})]
         }];
     })));
 
     images.heart = await ImageAsset.load({src: 'heart.png', dx: -8, dy: -16}).then(i => i.frames());
 
-    class Heart extends Entity.Base {
-        constructor(props = {}) {
-            super(props);
-            this.sprite = this.addChild(new Entity.Sprite({frames: images.heart}));
-            this.timer = 1000;
-            this.alpha = 1.0;
+    class Heart extends Entity {
+        constructor(props) {
+            super({
+                sprite: new ImageSprite(images.heart),
+                timer: 1000,
+                alpha: 1.0,
+                ...props
+            });
         }
 
         update(dt) {
@@ -143,6 +160,7 @@ export default async function start({canvas}) {
     return new class extends Scene {
         constructor(props = {}) {
             super(props);
+
             this.players = [];
             this._listener = () => this.resetPlayers();
 
@@ -191,19 +209,20 @@ export default async function start({canvas}) {
                 if (d < 1) {
                     p1.frozen = 500;
                     p2.frozen = 500;
-                    p1.sprite.frames = p1.spriteSheet['freeze'];
-                    p2.sprite.frames = p2.spriteSheet['freeze'];
+
+                    p1.state = 'frozen';
+                    p2.state = 'frozen';
 
                     if (p1.x < p2.x) {
                         p1.x -= 5;
                         p2.x += 5;
-                        p1.sprite.scaleX = 1;
-                        p2.sprite.scaleX = -1;
+                        p1.scaleX = 1;
+                        p2.scaleX = -1;
                     } else {
                         p1.x += 5;
                         p2.x -= 5;
-                        p1.sprite.scaleX = -1;
-                        p2.sprite.scaleX = 1;
+                        p1.scaleX = -1;
+                        p2.scaleX = 1;
                     }
 
                     this.addChild(new Heart({x: (p1.x + p2.x)/2, y: (p1.y + p2.y)/2}));
