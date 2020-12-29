@@ -1,14 +1,15 @@
-import {loadImage} from './assets';
+import {ImageAsset} from './assets';
 import Scene from './scene';
-import {Entity, Sprite} from './entity';
+import * as Entity from './entity';
 import {ArrowsInput, WASDInput, GamepadInput} from './input';
 
-export class Player extends Entity {
+export class Player extends Entity.Base {
     constructor(props = {}) {
         super(props);
         this.input = props.input;
         this.spriteSheet = props.spriteSheet;
-        this.sprite = this.addChild(new Sprite({}));
+        this.sprite = new Entity.Sprite({});
+        this.addChild(this.sprite);
         this.frozen = -1;
     }
 
@@ -70,7 +71,7 @@ export class Player extends Entity {
     }
 }
 
-class StartText extends Entity {
+class StartText extends Entity.Text {
     constructor(props = {}) {
         super(props);
         this.alpha = 1.0;
@@ -78,6 +79,11 @@ class StartText extends Entity {
         this.x = 160;
         this.y = 50;
         this._timer = 1000;
+        this.textAlign = 'center';
+        this.textBaseline = 'middle';
+        this.fillStyle = 'white';
+        this.font = '8px sans-serif';
+        this.text = 'START';
     }
 
     update(dt) {
@@ -93,51 +99,29 @@ class StartText extends Entity {
         this.angle += dt / 500;
         this.alpha -= dt / 1000;
     }
-
-    draw(ctx) {
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'white';
-        ctx.font = '8px sans-serif';
-        ctx.fillText('START', 0, 4);
-    }
 }
 
 export default async function start({canvas}) {
     canvas.width = 320;
     canvas.height = 240;
 
-    let spriteSheet = [
-        await loadImage('doux.png'),
-        await loadImage('mort.png'),
-        await loadImage('tard.png'),
-        await loadImage('vita.png')
-    ];
+    let images = Object.fromEntries(await Promise.all(['doux', 'mort', 'tard', 'vita'].map(async (name, i) => {
+        let image = await ImageAsset.load({src: `${name}.png`, sw: 24, sh: 24, dx: -11, dy: -20});
+        return [i, {
+            'idle slow': image.frames({i: 0, n: 3, delay: 200}),
+            'idle fast': image.frames({i: 17, n: 1, delay: Infinity}),
+            'move slow': image.frames({i: 4, n: 6, delay: 100}),
+            'move fast': image.frames({i: 18, n: 6, delay: 100}),
+            'freeze': [image.frame({i: 14, delay: 50}), image.frame({i: 16, delay: 50})]
+        }];
+    })));
 
-    let heart = [
-        {image: await loadImage('heart.png'), sx: 0, sy: 0, sw: 16, sh: 16, dx: -8, dy: -16, dw: 16, dh: 16, delay: Infinity}
-    ];
+    images.heart = await ImageAsset.load({src: 'heart.png', dx: -8, dy: -16}).then(i => i.frames());
 
-    function loop(player, start, n, delay) {
-        let result = new Array(n);
-        for (let i = 0; i < n; ++i) {
-            let j = start + i;
-            result[i] = {image: spriteSheet[player], sx: j * 24, sy: 0, sw: 24, sh: 24, dx: -11, dy: -20, dw: 24, dh: 24, delay};
-        }
-        return result;
-    }
-
-    let frames = [0, 1, 2, 3].map(player => ({
-        'idle slow': loop(player, 0, 3, 200),
-        'idle fast': loop(player, 17, 1, Infinity),
-        'move slow': loop(player, 4, 6, 100),
-        'move fast': loop(player, 18, 6, 100),
-        'freeze': [...loop(player, 14, 1, 50), ...loop(player, 16, 1, 50)]
-    }));
-
-    class Heart extends Entity {
+    class Heart extends Entity.Base {
         constructor(props = {}) {
             super(props);
-            this.sprite = this.addChild(new Sprite({frames: heart}));
+            this.sprite = this.addChild(new Entity.Sprite({frames: images.heart}));
             this.timer = 1000;
             this.alpha = 1.0;
         }
@@ -157,8 +141,8 @@ export default async function start({canvas}) {
     }
 
     return new class extends Scene {
-        constructor() {
-            super(new Entity);
+        constructor(props = {}) {
+            super(props);
             this.players = [];
             this._listener = () => this.resetPlayers();
 
@@ -178,11 +162,11 @@ export default async function start({canvas}) {
             let gamepads = navigator.getGamepads();
             if (gamepads.length == 0) {
                 this.players = [
-                    new Player({input: new WASDInput(), x: 100, y: 100, spriteSheet: frames[0]}),
-                    new Player({input: new ArrowsInput(), x: 200, y: 200, spriteSheet: frames[1]})
+                    new Player({input: new WASDInput(), x: 100, y: 100, spriteSheet: images[0]}),
+                    new Player({input: new ArrowsInput(), x: 200, y: 200, spriteSheet: images[1]})
                 ];
             } else {
-                this.players = gamepads.map((g, i) => new Player({input: new GamepadInput(g), x: 100 + 50 * i, y: 100 + 50 * i, spriteSheet: frames[i]}));
+                this.players = gamepads.map((g, i) => new Player({input: new GamepadInput(g), x: 100 + 50 * i, y: 100 + 50 * i, spriteSheet: images[i]}));
             }
 
             this.players.forEach(p => this.addChild(p));

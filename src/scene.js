@@ -1,7 +1,7 @@
-import {Entity} from './entity';
+import * as Entity from './entity';
 
-export default class Scene extends Entity {
-    constructor(props) {
+export default class Scene extends Entity.Base {
+    constructor(props = {}) {
         super(props);
     }
 

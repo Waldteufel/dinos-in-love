@@ -1,4 +1,4 @@
-export class Entity {
+export class Base {
     constructor(props = {}) {
         this.x = props.x ?? 0;
         this.y = props.y ?? 0;
@@ -14,7 +14,6 @@ export class Entity {
     addChild(c) {
         this.children.add(c);
         c.parent = this;
-        return c;
     }
 
     removeChild(c) {
@@ -29,7 +28,7 @@ export class Entity {
     }
 }
 
-export class Sprite extends Entity {
+export class Sprite extends Base {
     constructor(props = {}) {
         super(props);
         this._frames = props.frames ?? [];
@@ -60,5 +59,23 @@ export class Sprite extends Entity {
     draw(ctx) {
         let {image, sx, sy, sw, sh, dx, dy, dw, dh} = this.frames[this._frameIndex];
         ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+    }
+}
+
+export class Text extends Base {
+    constructor(props = {}) {
+        super(props);
+        this.textAlign = props.textAlign ?? 'left';
+        this.textBaseline = props.textBaseline ?? 'alphabetic';
+        this.fillStyle = props.fillStyle ?? 'white';
+        this.font = props.font ?? '8px sans-serif';
+    }
+
+    draw(ctx) {
+        ctx.textAlign = this.textAlign;
+        ctx.textBaseline = this.textBaseline;
+        ctx.fillStyle = this.fillStyle;
+        ctx.font = this.font;
+        ctx.fillText(this.text, 0, 0);
     }
 }
