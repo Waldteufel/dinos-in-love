@@ -1,4 +1,3 @@
-import '../assets/style.css';
 import start from './game.js';
 
 function animate(g) {
