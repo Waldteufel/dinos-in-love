@@ -47,7 +47,7 @@ export class ImageAsset {
 
         for (let ii = 0; ii < n; ++ii) {
             for (let jj = 0; jj < m; ++jj) {
-                result[k++] = this.frame({i: ii, j: jj, ...props});
+                result[k++] = this.frame({i: i + ii, j: j + jj, ...props});
             }
         }
 
