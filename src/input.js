@@ -15,21 +15,44 @@ export class ArrowsInput {
         return this._keys.Shift;
     }
 
-    get velocity() {
-        let velocity = {x: 0, y: 0};
+    get vx() {
+        let value = 0;
+
         if (this._keys.ArrowLeft) {
-            velocity.x -= 1;
+            value -= 1;
         }
+
         if (this._keys.ArrowRight) {
-            velocity.x += 1;
+            value += 1;
         }
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
+    }
+
+    get vy() {
+        let value = 0;
+
         if (this._keys.ArrowUp) {
-            velocity.y -= 1;
+            value -= 1;
         }
+
         if (this._keys.ArrowDown) {
-            velocity.y += 1;
+            value += 1;
         }
-        return velocity;
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
     }
 }
 
@@ -50,21 +73,44 @@ export class WASDInput {
         return this._keys.f;
     }
 
-    get velocity() {
-        let velocity = {x: 0, y: 0};
+    get vx() {
+        let value = 0;
+
         if (this._keys.a) {
-            velocity.x -= 1;
+            value -= 1;
         }
+
         if (this._keys.d) {
-            velocity.x += 1;
+            value += 1;
         }
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
+    }
+
+    get vy() {
+        let value = 0;
+
         if (this._keys.w) {
-            velocity.y -= 1;
+            value -= 1;
         }
+
         if (this._keys.s) {
-            velocity.y += 1;
+            value += 1;
         }
-        return velocity;
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
     }
 }
 
@@ -77,7 +123,11 @@ export class GamepadInput {
         return this._gamepad.buttons[0].pressed;
     }
 
-    get velocity() {
-        return {x: this._gamepad.axes[0], y: this._gamepad.axes[1]};
+    get vx() {
+        return this._gamepad.axes[0] * (this.fast ? 1.5 : 0.5);
+    }
+
+    get vy() {
+        return this._gamepad.axes[1] * (this.fast ? 1.5 : 0.5);
     }
 }

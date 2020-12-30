@@ -62,7 +62,7 @@ class ImageAsset {
 
         for (let ii = 0; ii < n; ++ii) {
             for (let jj = 0; jj < m; ++jj) {
-                result[k++] = this.frame({i: ii, j: jj, ...props});
+                result[k++] = this.frame({i: i + ii, j: j + jj, ...props});
             }
         }
 
@@ -88,9 +88,13 @@ class Entity {
         this._parent = null;
         this._children = new Set();
 
+        this.vx = 0;
+        this.vy = 0;
+        this.vrot = 0;
+
         this.x = 0;
         this.y = 0;
-        this.angle = 0;
+        this.rot = 0;
         this.scaleX = 1;
         this.scaleY = 1;
 
@@ -188,33 +192,29 @@ class Player extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
     update(dt) {
         if (this.frozen > 0) {
             this.frozen -= dt;
+            this.vx = 0;
+            this.vy = 0;
             return;
         }
 
-        let fast = this.input.fast;
-        let velocity = this.input.velocity;
+        this.vx = this.input.vx / 10;
+        this.vy = this.input.vy / 10;
 
-        let power = fast ? 1.5 : 0.5;
-
-        velocity.x *= power;
-        velocity.y *= power;
-
-        let direction = null;
-        if (velocity.x > 0) {
-            direction = 'right';
-        } else if (velocity.x < 0) {
-            direction = 'left';
+        if (this.vx > 0) {
+            this.scaleX = 1;
+        } else if (this.vx < 0) {
+            this.scaleX = -1;
         }
 
         let newState;
 
-        if (velocity.x != 0 || velocity.y != 0) {
+        if (this.vx != 0 || this.vy != 0) {
             newState = 'moving';
         } else {
             newState = 'waiting';
         }
 
-        if (fast) {
+        if (this.input.fast) {
             newState += ' fast';
         } else {
             newState += ' slow';
@@ -222,27 +222,24 @@ class Player extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
 
         this.state = newState;
 
-        if (direction === 'left') {
-            this.scaleX = -1;
-        } else if (direction === 'right') {
-            this.scaleX = 1;
+        /* border collision */
+        if (this.x <= 12) {
+            this.x = 12;
+            this.vx = Math.max(this.vx, 0);
+        }
+        if (this.y <= 16) {
+            this.y = 16;
+            this.vy = Math.max(this.vy, 0);
         }
 
-        this.x += velocity.x;
-        this.y += velocity.y;
-
-        /* border collision */
-        if (this.x < 12)
-            this.x = 12;
-        if (this.y < 16)
-            this.y = 16;
-
-        if (this.x >= 320 - 12)
+        if (this.x >= 320 - 12) {
             this.x = 320 - 12;
-        if (this.y >= 240 - 4)
+            this.vx = Math.min(this.vx, 0);
+        }
+        if (this.y >= 240 - 4) {
             this.y = 240 - 4;
-
-        this.z = this.y / 1000;
+            this.vy = Math.min(this.vy, 0);
+        }
     }
 }
 
@@ -253,6 +250,9 @@ class StartText extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
             alpha: 1.0,
             x: 160,
             y: 50,
+            vy: -1/50,
+            rot: -20,
+            vrot: 1/20,
             sprite: new _sprites__WEBPACK_IMPORTED_MODULE_3__.TextSprite({
                 textAlign: 'center',
                 textBaseline: 'middle',
@@ -269,10 +269,8 @@ class StartText extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
             return;
         }
 
-        this.y -= dt / 50;
         this.scaleX += dt / 1000;
         this.scaleY += dt / 1000;
-        this.angle += dt / 500;
         this.alpha -= dt / 1000;
     }
 }
@@ -300,6 +298,7 @@ async function start({canvas}) {
                 sprite: new _sprites__WEBPACK_IMPORTED_MODULE_3__.ImageSprite(images.heart),
                 timer: 1000,
                 alpha: 1.0,
+                vy: -1/100,
                 ...props
             });
         }
@@ -311,7 +310,6 @@ async function start({canvas}) {
                 return;
             }
 
-            this.y -= dt / 100;
             this.scaleX += dt / 1000;
             this.scaleY += dt / 1000;
             this.alpha -= dt / 1000;
@@ -472,21 +470,44 @@ class ArrowsInput {
         return this._keys.Shift;
     }
 
-    get velocity() {
-        let velocity = {x: 0, y: 0};
+    get vx() {
+        let value = 0;
+
         if (this._keys.ArrowLeft) {
-            velocity.x -= 1;
+            value -= 1;
         }
+
         if (this._keys.ArrowRight) {
-            velocity.x += 1;
+            value += 1;
         }
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
+    }
+
+    get vy() {
+        let value = 0;
+
         if (this._keys.ArrowUp) {
-            velocity.y -= 1;
+            value -= 1;
         }
+
         if (this._keys.ArrowDown) {
-            velocity.y += 1;
+            value += 1;
         }
-        return velocity;
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
     }
 }
 
@@ -507,21 +528,44 @@ class WASDInput {
         return this._keys.f;
     }
 
-    get velocity() {
-        let velocity = {x: 0, y: 0};
+    get vx() {
+        let value = 0;
+
         if (this._keys.a) {
-            velocity.x -= 1;
+            value -= 1;
         }
+
         if (this._keys.d) {
-            velocity.x += 1;
+            value += 1;
         }
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
+    }
+
+    get vy() {
+        let value = 0;
+
         if (this._keys.w) {
-            velocity.y -= 1;
+            value -= 1;
         }
+
         if (this._keys.s) {
-            velocity.y += 1;
+            value += 1;
         }
-        return velocity;
+
+        if (this.fast) {
+            value *= 1.5;
+        } else {
+            value *= 0.5;
+        }
+
+        return value;
     }
 }
 
@@ -534,8 +578,12 @@ class GamepadInput {
         return this._gamepad.buttons[0].pressed;
     }
 
-    get velocity() {
-        return {x: this._gamepad.axes[0], y: this._gamepad.axes[1]};
+    get vx() {
+        return this._gamepad.axes[0] * (this.fast ? 1.5 : 0.5);
+    }
+
+    get vy() {
+        return this._gamepad.axes[1] * (this.fast ? 1.5 : 0.5);
     }
 }
 
@@ -560,73 +608,51 @@ class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__.default {
     }
 
     updateAll(dt) {
-        let f = (node) => {
+        this._renderList = [];
+
+        let walk = (node) => {
             node.update?.(dt);
-            node.sprite?.update?.(dt);
-            node.children.forEach(f);
+
+            node.x += node.vx * dt;
+            node.y += node.vy * dt;
+            node.rot += node.vrot * dt;
+
+            if (node.parent) {
+                node._matrix = DOMMatrix.fromMatrix(node.parent._matrix);
+            } else {
+                node._matrix = new DOMMatrix();
+            }
+
+            node._matrix.translateSelf(Math.round(node.x), Math.round(node.y));
+            node._matrix.rotateSelf(0, 0, node.rot);
+            node._matrix.scaleSelf(node.scaleX, node.scaleY);
+            node._anchor = node._matrix.transformPoint({x: 0, y: 0, z: node.z});
+
+            if (node.sprite) {
+                node.sprite.update?.(dt);
+                this._renderList.push(node);
+            }
+
+            // TODO: pre-calculate global transformation here?
+            // TODO: collision detection
+            node.children.forEach(walk);
         };
 
-        f(this);
+        walk(this);
     }
 
     drawAll(ctx, canvas) {
-        let renderList = [];
-        let alphaStack = [1.0];
-        let zStack = [0];
-
-        let f = (node) => {
-            ctx.save();
-            ctx.translate(Math.round(node.x), Math.round(node.y));
-            ctx.rotate(node.angle);
-            ctx.scale(node.scaleX, node.scaleY);
-
-            if (node.z) {
-                zStack.push(node.z + zStack[zStack.length - 1]);
-            }
-
-            if (node.alpha != null) {
-                alphaStack.push(node.alpha * alphaStack[alphaStack.length - 1]);
-            }
-
-            if (node.sprite) {
-                let transform = ctx.getTransform();
-                let z = zStack[zStack.length - 1];
-                let alpha = alphaStack[alphaStack.length - 1];
-
-                renderList.push({
-                    z,
-                    draw() {
-                        ctx.setTransform(transform);
-                        ctx.globalAlpha = alpha;
-                        node.sprite.draw(ctx, canvas);
-                        ctx.globalAlpha = 1;
-                    }
-                });
-            }
-
-            node.children.forEach(f);
-
-            ctx.restore();
-
-            if (node.z) {
-                zStack.pop();
-            }
-
-            if (node.alpha != null) {
-                alphaStack.pop();
-            }
-        };
-
-        f(this);
-
-        renderList.sort(({z: z1}, {z: z2}) => z1 - z2);
+        this._renderList.sort((node1, node2) => (node1._anchor.z - node2._anchor.z) || (node1._anchor.y - node2._anchor.y));
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        for (let {draw} of renderList) {
-            draw();
+        for (let node of this._renderList) {
+            ctx.save();
+            ctx.transform(node._matrix.a, node._matrix.b, node._matrix.c, node._matrix.d, node._matrix.e, node._matrix.f);
+            ctx.globalAlpha = node.alpha;
+            node.sprite.draw(ctx, canvas);
+            ctx.globalAlpha = 1;
+            ctx.restore();
         }
-        ctx.restore();
     }
 }
 

@@ -3,9 +3,13 @@ export default class Entity {
         this._parent = null;
         this._children = new Set();
 
+        this.vx = 0;
+        this.vy = 0;
+        this.vrot = 0;
+
         this.x = 0;
         this.y = 0;
-        this.angle = 0;
+        this.rot = 0;
         this.scaleX = 1;
         this.scaleY = 1;
 

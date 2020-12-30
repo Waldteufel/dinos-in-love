@@ -27,33 +27,29 @@ export class Player extends Entity {
     update(dt) {
         if (this.frozen > 0) {
             this.frozen -= dt;
+            this.vx = 0;
+            this.vy = 0;
             return;
         }
 
-        let fast = this.input.fast;
-        let velocity = this.input.velocity;
+        this.vx = this.input.vx / 10;
+        this.vy = this.input.vy / 10;
 
-        let power = fast ? 1.5 : 0.5;
-
-        velocity.x *= power;
-        velocity.y *= power;
-
-        let direction = null;
-        if (velocity.x > 0) {
-            direction = 'right';
-        } else if (velocity.x < 0) {
-            direction = 'left';
+        if (this.vx > 0) {
+            this.scaleX = 1;
+        } else if (this.vx < 0) {
+            this.scaleX = -1;
         }
 
         let newState;
 
-        if (velocity.x != 0 || velocity.y != 0) {
+        if (this.vx != 0 || this.vy != 0) {
             newState = 'moving';
         } else {
             newState = 'waiting';
         }
 
-        if (fast) {
+        if (this.input.fast) {
             newState += ' fast';
         } else {
             newState += ' slow';
@@ -61,27 +57,24 @@ export class Player extends Entity {
 
         this.state = newState;
 
-        if (direction === 'left') {
-            this.scaleX = -1;
-        } else if (direction === 'right') {
-            this.scaleX = 1;
+        /* border collision */
+        if (this.x <= 12) {
+            this.x = 12;
+            this.vx = Math.max(this.vx, 0);
+        }
+        if (this.y <= 16) {
+            this.y = 16;
+            this.vy = Math.max(this.vy, 0);
         }
 
-        this.x += velocity.x;
-        this.y += velocity.y;
-
-        /* border collision */
-        if (this.x < 12)
-            this.x = 12;
-        if (this.y < 16)
-            this.y = 16;
-
-        if (this.x >= 320 - 12)
+        if (this.x >= 320 - 12) {
             this.x = 320 - 12;
-        if (this.y >= 240 - 4)
+            this.vx = Math.min(this.vx, 0);
+        }
+        if (this.y >= 240 - 4) {
             this.y = 240 - 4;
-
-        this.z = this.y / 1000;
+            this.vy = Math.min(this.vy, 0);
+        }
     }
 }
 
@@ -92,6 +85,9 @@ class StartText extends Entity {
             alpha: 1.0,
             x: 160,
             y: 50,
+            vy: -1/50,
+            rot: -20,
+            vrot: 1/20,
             sprite: new TextSprite({
                 textAlign: 'center',
                 textBaseline: 'middle',
@@ -108,10 +104,8 @@ class StartText extends Entity {
             return;
         }
 
-        this.y -= dt / 50;
         this.scaleX += dt / 1000;
         this.scaleY += dt / 1000;
-        this.angle += dt / 500;
         this.alpha -= dt / 1000;
     }
 }
@@ -139,6 +133,7 @@ export default async function start({canvas}) {
                 sprite: new ImageSprite(images.heart),
                 timer: 1000,
                 alpha: 1.0,
+                vy: -1/100,
                 ...props
             });
         }
@@ -150,7 +145,6 @@ export default async function start({canvas}) {
                 return;
             }
 
-            this.y -= dt / 100;
             this.scaleX += dt / 1000;
             this.scaleY += dt / 1000;
             this.alpha -= dt / 1000;

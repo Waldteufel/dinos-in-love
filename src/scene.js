@@ -6,72 +6,50 @@ export default class Scene extends Entity {
     }
 
     updateAll(dt) {
-        let f = (node) => {
+        this._renderList = [];
+
+        let walk = (node) => {
             node.update?.(dt);
-            node.sprite?.update?.(dt);
-            node.children.forEach(f);
+
+            node.x += node.vx * dt;
+            node.y += node.vy * dt;
+            node.rot += node.vrot * dt;
+
+            if (node.parent) {
+                node._matrix = DOMMatrix.fromMatrix(node.parent._matrix);
+            } else {
+                node._matrix = new DOMMatrix();
+            }
+
+            node._matrix.translateSelf(Math.round(node.x), Math.round(node.y));
+            node._matrix.rotateSelf(0, 0, node.rot);
+            node._matrix.scaleSelf(node.scaleX, node.scaleY);
+            node._anchor = node._matrix.transformPoint({x: 0, y: 0, z: node.z});
+
+            if (node.sprite) {
+                node.sprite.update?.(dt);
+                this._renderList.push(node);
+            }
+
+            // TODO: pre-calculate global transformation here?
+            // TODO: collision detection
+            node.children.forEach(walk);
         };
 
-        f(this);
+        walk(this);
     }
 
     drawAll(ctx, canvas) {
-        let renderList = [];
-        let alphaStack = [1.0];
-        let zStack = [0];
-
-        let f = (node) => {
-            ctx.save();
-            ctx.translate(Math.round(node.x), Math.round(node.y));
-            ctx.rotate(node.angle);
-            ctx.scale(node.scaleX, node.scaleY);
-
-            if (node.z) {
-                zStack.push(node.z + zStack[zStack.length - 1]);
-            }
-
-            if (node.alpha != null) {
-                alphaStack.push(node.alpha * alphaStack[alphaStack.length - 1]);
-            }
-
-            if (node.sprite) {
-                let transform = ctx.getTransform();
-                let z = zStack[zStack.length - 1];
-                let alpha = alphaStack[alphaStack.length - 1];
-
-                renderList.push({
-                    z,
-                    draw() {
-                        ctx.setTransform(transform);
-                        ctx.globalAlpha = alpha;
-                        node.sprite.draw(ctx, canvas);
-                        ctx.globalAlpha = 1;
-                    }
-                });
-            }
-
-            node.children.forEach(f);
-
-            ctx.restore();
-
-            if (node.z) {
-                zStack.pop();
-            }
-
-            if (node.alpha != null) {
-                alphaStack.pop();
-            }
-        };
-
-        f(this);
-
-        renderList.sort(({z: z1}, {z: z2}) => z1 - z2);
+        this._renderList.sort((node1, node2) => (node1._anchor.z - node2._anchor.z) || (node1._anchor.y - node2._anchor.y));
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        for (let {draw} of renderList) {
-            draw();
+        for (let node of this._renderList) {
+            ctx.save();
+            ctx.transform(node._matrix.a, node._matrix.b, node._matrix.c, node._matrix.d, node._matrix.e, node._matrix.f);
+            ctx.globalAlpha = node.alpha;
+            node.sprite.draw(ctx, canvas);
+            ctx.globalAlpha = 1;
+            ctx.restore();
         }
-        ctx.restore();
     }
 }

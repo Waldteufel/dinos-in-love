@@ -1,10 +1,9 @@
-/* eslint-env node */
-
-const webpack = require('webpack');
-
-module.exports = (env, argv) => ({
+module.exports = (_, argv) => ({
   entry: './src/index.js',
   mode: argv.mode ?? 'development',
   devtool: 'source-map',
-  stats: 'minimal'
+  stats: 'minimal',
+  devServer: {
+    publicPath: '/dist/'
+  }
 });
