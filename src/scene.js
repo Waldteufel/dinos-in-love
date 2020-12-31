@@ -1,4 +1,5 @@
 import Entity from './entity';
+import {collide} from './shapes';
 
 export default class Scene extends Entity {
     constructor(props = {}) {
@@ -7,28 +8,25 @@ export default class Scene extends Entity {
 
     updateAll(dt) {
         this._renderList = [];
+        this._collideList = [];
 
         let walk = (node) => {
             node.update?.(dt);
+            node.touches.clear();
 
             node.x += node.vx * dt;
             node.y += node.vy * dt;
             node.rot += node.vrot * dt;
 
-            if (node.parent) {
-                node._matrix = DOMMatrix.fromMatrix(node.parent._matrix);
-            } else {
-                node._matrix = new DOMMatrix();
-            }
-
-            node._matrix.translateSelf(Math.round(node.x), Math.round(node.y));
-            node._matrix.rotateSelf(0, 0, node.rot);
-            node._matrix.scaleSelf(node.scaleX, node.scaleY);
-            node._anchor = node._matrix.transformPoint({x: 0, y: 0, z: node.z});
+            node.updateTransform();
 
             if (node.sprite) {
                 node.sprite.update?.(dt);
                 this._renderList.push(node);
+            }
+
+            if (node.shape) {
+                this._collideList.push(node);
             }
 
             // TODO: pre-calculate global transformation here?
@@ -37,6 +35,28 @@ export default class Scene extends Entity {
         };
 
         walk(this);
+
+        let again = true;
+        let n = 0;
+
+        do {
+            again = false;
+            for (let i = 0; i < this._collideList.length; ++i) {
+                for (let j = i + 1; j < this._collideList.length; ++j) {
+                    let coll = collide(this._collideList[i], this._collideList[j]);
+                    if (coll) {
+                        this._collideList[i].touches.add({other: this._collideList[j], nx: -coll.nx, ny: -coll.ny});
+                        this._collideList[j].touches.add({other: this._collideList[i], nx: coll.nx, ny: coll.ny});
+                        if (coll.d < 0) // positions adjusted -> check again
+                            again = true;
+                    }
+                }
+            }
+        } while (again && ++n < 10);
+
+        if (n > 2) {
+            console.warn(`no solution after ${n} collision passes!`);
+        }
     }
 
     drawAll(ctx, canvas) {

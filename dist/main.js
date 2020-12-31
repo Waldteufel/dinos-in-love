@@ -83,10 +83,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => /* binding */ Entity
 /* harmony export */ });
+let nextId = 1;
+
 class Entity {
     constructor(props) {
         this._parent = null;
         this._children = new Set();
+
+        this.touches = new Set();
+
+        this.id = nextId++;
+        this.name = `${this.constructor.name}#${this.id}`;
 
         this.vx = 0;
         this.vy = 0;
@@ -99,6 +106,23 @@ class Entity {
         this.scaleY = 1;
 
         Object.assign(this, props);
+    }
+
+    toString() {
+        return this.name;
+    }
+
+    updateTransform() {
+        if (this._parent) {
+            this._matrix = DOMMatrix.fromMatrix(this.parent._matrix);
+        } else {
+            this._matrix = new DOMMatrix();
+        }
+
+        this._matrix.translateSelf(Math.round(this.x), Math.round(this.y));
+        this._matrix.rotateSelf(0, 0, this.rot);
+        this._matrix.scaleSelf(this.scaleX, this.scaleY);
+        this._anchor = this._matrix.transformPoint({x: 0, y: 0, z: this.z});
     }
 
     get parent() {
@@ -155,7 +179,6 @@ class Entity {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "Player": () => /* binding */ Player,
 /* harmony export */   "default": () => /* binding */ start
 /* harmony export */ });
 /* harmony import */ var _assets__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./assets */ "./src/assets.js");
@@ -163,117 +186,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _entity__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./entity */ "./src/entity.js");
 /* harmony import */ var _sprites__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./sprites */ "./src/sprites.js");
 /* harmony import */ var _input__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./input */ "./src/input.js");
+/* harmony import */ var _shapes__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./shapes */ "./src/shapes.js");
 
 
 
 
 
 
-class Player extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
-    constructor(props = {}) {
-        super({
-            _state: null,
-            frozen: -1,
-            ...props
-        });
-    }
 
-    get state() {
-        return this._state;
-    }
-
-    set state(value) {
-        if (this._state != value) {
-            this._state = value;
-            this.sprite = new _sprites__WEBPACK_IMPORTED_MODULE_3__.ImageSprite(this.spriteSheet[this._state]);
-        }
-    }
-
-    update(dt) {
-        if (this.frozen > 0) {
-            this.frozen -= dt;
-            this.vx = 0;
-            this.vy = 0;
-            return;
-        }
-
-        this.vx = this.input.vx / 10;
-        this.vy = this.input.vy / 10;
-
-        if (this.vx > 0) {
-            this.scaleX = 1;
-        } else if (this.vx < 0) {
-            this.scaleX = -1;
-        }
-
-        let newState;
-
-        if (this.vx != 0 || this.vy != 0) {
-            newState = 'moving';
-        } else {
-            newState = 'waiting';
-        }
-
-        if (this.input.fast) {
-            newState += ' fast';
-        } else {
-            newState += ' slow';
-        }
-
-        this.state = newState;
-
-        /* border collision */
-        if (this.x <= 12) {
-            this.x = 12;
-            this.vx = Math.max(this.vx, 0);
-        }
-        if (this.y <= 16) {
-            this.y = 16;
-            this.vy = Math.max(this.vy, 0);
-        }
-
-        if (this.x >= 320 - 12) {
-            this.x = 320 - 12;
-            this.vx = Math.min(this.vx, 0);
-        }
-        if (this.y >= 240 - 4) {
-            this.y = 240 - 4;
-            this.vy = Math.min(this.vy, 0);
-        }
-    }
-}
-
-class StartText extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
-    constructor(props) {
-        super({
-            _timer: 1000,
-            alpha: 1.0,
-            x: 160,
-            y: 50,
-            vy: -1/50,
-            rot: -20,
-            vrot: 1/20,
-            sprite: new _sprites__WEBPACK_IMPORTED_MODULE_3__.TextSprite({
-                textAlign: 'center',
-                textBaseline: 'middle',
-                text: 'START'
-            }),
-            ...props
-        });
-    }
-
-    update(dt) {
-        this._timer -= dt;
-        if (this._timer <= 0) {
-            this.remove();
-            return;
-        }
-
-        this.scaleX += dt / 1000;
-        this.scaleY += dt / 1000;
-        this.alpha -= dt / 1000;
-    }
-}
 
 async function start({canvas}) {
     canvas.width = 320;
@@ -291,6 +211,124 @@ async function start({canvas}) {
     })));
 
     images.heart = await _assets__WEBPACK_IMPORTED_MODULE_0__.ImageAsset.load({src: 'heart.png', dx: -8, dy: -16}).then(i => i.frames());
+
+    class Player extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
+        constructor(props = {}) {
+            super({
+                _state: null,
+                frozen: -1,
+                shape: new _shapes__WEBPACK_IMPORTED_MODULE_5__.Box({left: -4, right: +4, top: -2, bottom: +2}),
+                ...props
+            });
+        }
+
+        get state() {
+            return this._state;
+        }
+
+        set state(value) {
+            if (this._state != value) {
+                this._state = value;
+                this.sprite = new _sprites__WEBPACK_IMPORTED_MODULE_3__.ImageSprite(this.spriteSheet[this._state]);
+            }
+        }
+
+        update(dt) {
+            if (this.frozen > 0) {
+                this.frozen -= dt;
+                this.vx = 0;
+                this.vy = 0;
+                return;
+            }
+
+            for (let {other, nx, ny} of this.touches) {
+                if (other instanceof Player) {
+                    if (other.frozen <= 0) {
+                        this.frozen = 500;
+                        other.frozen = 500;
+
+                        this.state = 'frozen';
+                        other.state = 'frozen';
+
+                        if (this.x < other.x) {
+                            this.scaleX = 1;
+                            other.scaleX = -1;
+                        } else {
+                            this.scaleX = -1;
+                            other.scaleX = 1;
+                        }
+
+                        this.x -= 5 * nx;
+                        this.y -= 5 * ny;
+
+                        other.x += 5 * nx;
+                        other.y += 5 * ny;
+
+                        this.parent.addChild(new Heart({x: (this.x + other.x)/2, y: (this.y + other.y)/2}));
+
+                        return;
+                    }
+                }
+            }
+
+            this.vx = this.input.vx / 10;
+            this.vy = this.input.vy / 10;
+
+            if (this.vx > 0) {
+                this.scaleX = 1;
+            } else if (this.vx < 0) {
+                this.scaleX = -1;
+            }
+
+            let newState;
+
+            if (this.vx != 0 || this.vy != 0) {
+                newState = 'moving';
+            } else {
+                newState = 'waiting';
+            }
+
+            if (this.input.fast) {
+                newState += ' fast';
+            } else {
+                newState += ' slow';
+            }
+
+            this.state = newState;
+        }
+    }
+
+    class StartText extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
+        constructor(props) {
+            super({
+                _timer: 1000,
+                alpha: 1.0,
+                x: 160,
+                y: 50,
+                vy: -1/50,
+                rot: -20,
+                vrot: 1/20,
+                sprite: new _sprites__WEBPACK_IMPORTED_MODULE_3__.TextSprite({
+                    textAlign: 'center',
+                    textBaseline: 'middle',
+                    text: 'START'
+                }),
+                ...props
+            });
+        }
+
+        update(dt) {
+            this._timer -= dt;
+            if (this._timer <= 0) {
+                this.remove();
+                return;
+            }
+
+            this.scaleX += dt / 1000;
+            this.scaleY += dt / 1000;
+            this.alpha -= dt / 1000;
+        }
+    }
 
     class Heart extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
         constructor(props) {
@@ -316,6 +354,15 @@ async function start({canvas}) {
         }
     }
 
+    class Walls extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
+        constructor(props) {
+            super({
+                shape: new _shapes__WEBPACK_IMPORTED_MODULE_5__.OuterWalls({mass: Infinity, top: 16, left: 10, right: 310, bottom: 240}),
+                ...props
+            });
+        }
+    }
+
     return new class extends _scene__WEBPACK_IMPORTED_MODULE_1__.default {
         constructor(props = {}) {
             super(props);
@@ -326,6 +373,8 @@ async function start({canvas}) {
             window.addEventListener('gamepadconnected', this._listener);
             window.addEventListener('gamepaddisconnected', this._listener);
             this.resetPlayers();
+
+            this.addChild(new Walls());
         }
 
         close() {
@@ -349,44 +398,6 @@ async function start({canvas}) {
             this.players.forEach(p => this.addChild(p));
 
             this.addChild(new StartText());
-        }
-
-        update(dt) {
-            function *pairs(ps) {
-                for (let i = 0; i < ps.length; ++i) {
-                    for (let j = i + 1; j < ps.length; ++j) {
-                        yield [ps[i], ps[j]];
-                    }
-                }
-            }
-
-            for (let [p1, p2] of pairs(this.players)) {
-                if (p1.frozen > 0 || p2.frozen > 0) continue;
-
-                let d = ((p1.x - p2.x) / 24) ** 2 + ((p1.y - p2.y) / 8) ** 2;
-
-                if (d < 1) {
-                    p1.frozen = 500;
-                    p2.frozen = 500;
-
-                    p1.state = 'frozen';
-                    p2.state = 'frozen';
-
-                    if (p1.x < p2.x) {
-                        p1.x -= 5;
-                        p2.x += 5;
-                        p1.scaleX = 1;
-                        p2.scaleX = -1;
-                    } else {
-                        p1.x += 5;
-                        p2.x -= 5;
-                        p1.scaleX = -1;
-                        p2.scaleX = 1;
-                    }
-
-                    this.addChild(new Heart({x: (p1.x + p2.x)/2, y: (p1.y + p2.y)/2}));
-                }
-            }
         }
     };
 }
@@ -600,6 +611,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => /* binding */ Scene
 /* harmony export */ });
 /* harmony import */ var _entity__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./entity */ "./src/entity.js");
+/* harmony import */ var _shapes__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./shapes */ "./src/shapes.js");
+
 
 
 class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__.default {
@@ -609,28 +622,25 @@ class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__.default {
 
     updateAll(dt) {
         this._renderList = [];
+        this._collideList = [];
 
         let walk = (node) => {
             node.update?.(dt);
+            node.touches.clear();
 
             node.x += node.vx * dt;
             node.y += node.vy * dt;
             node.rot += node.vrot * dt;
 
-            if (node.parent) {
-                node._matrix = DOMMatrix.fromMatrix(node.parent._matrix);
-            } else {
-                node._matrix = new DOMMatrix();
-            }
-
-            node._matrix.translateSelf(Math.round(node.x), Math.round(node.y));
-            node._matrix.rotateSelf(0, 0, node.rot);
-            node._matrix.scaleSelf(node.scaleX, node.scaleY);
-            node._anchor = node._matrix.transformPoint({x: 0, y: 0, z: node.z});
+            node.updateTransform();
 
             if (node.sprite) {
                 node.sprite.update?.(dt);
                 this._renderList.push(node);
+            }
+
+            if (node.shape) {
+                this._collideList.push(node);
             }
 
             // TODO: pre-calculate global transformation here?
@@ -639,6 +649,28 @@ class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__.default {
         };
 
         walk(this);
+
+        let again = true;
+        let n = 0;
+
+        do {
+            again = false;
+            for (let i = 0; i < this._collideList.length; ++i) {
+                for (let j = i + 1; j < this._collideList.length; ++j) {
+                    let coll = (0,_shapes__WEBPACK_IMPORTED_MODULE_1__.collide)(this._collideList[i], this._collideList[j]);
+                    if (coll) {
+                        this._collideList[i].touches.add({other: this._collideList[j], nx: -coll.nx, ny: -coll.ny});
+                        this._collideList[j].touches.add({other: this._collideList[i], nx: coll.nx, ny: coll.ny});
+                        if (coll.d < 0) // positions adjusted -> check again
+                            again = true;
+                    }
+                }
+            }
+        } while (again && ++n < 10);
+
+        if (n > 2) {
+            console.warn(`no solution after ${n} collision passes!`);
+        }
     }
 
     drawAll(ctx, canvas) {
@@ -652,6 +684,156 @@ class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__.default {
             node.sprite.draw(ctx, canvas);
             ctx.globalAlpha = 1;
             ctx.restore();
+        }
+    }
+}
+
+/***/ }),
+
+/***/ "./src/shapes.js":
+/*!***********************!*\
+  !*** ./src/shapes.js ***!
+  \***********************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Shape": () => /* binding */ Shape,
+/* harmony export */   "Box": () => /* binding */ Box,
+/* harmony export */   "OuterWalls": () => /* binding */ OuterWalls,
+/* harmony export */   "resolve": () => /* binding */ resolve,
+/* harmony export */   "collide": () => /* binding */ collide
+/* harmony export */ });
+class Shape {
+    constructor(props = {}) {
+        this.mass = props.mass ?? 1;
+    }
+}
+
+class Box extends Shape {
+    constructor(props = {}) {
+        super(props);
+        this.top = props.top;
+        this.left = props.left;
+        this.bottom = props.bottom;
+        this.right = props.right;
+    }
+}
+
+class OuterWalls extends Shape {
+    constructor(props = {}) {
+        super(props);
+        this.top = props.top;
+        this.left = props.left;
+        this.bottom = props.bottom;
+        this.right = props.right;
+    }
+}
+
+const collisionTests = [
+    {shapes: [Box, Box], test(a, b) {
+        let candidates = [
+            {nx: +1, ny: 0, d: (b._anchor.x + b.shape.left) - (a._anchor.x + a.shape.right)},
+            {nx: -1, ny: 0, d: (a._anchor.x + a.shape.left) - (b._anchor.x + b.shape.right)},
+            {nx: 0, ny: +1, d: (b._anchor.y + b.shape.top) - (a._anchor.y + a.shape.bottom)},
+            {nx: 0, ny: -1, d: (a._anchor.y + a.shape.top) - (b._anchor.y + b.shape.bottom)},
+        ];
+
+        if (candidates.some(c => c.d > 0)) {
+            return null;
+        }
+
+        return candidates.reduce((prev, next) => prev.d > next.d ? prev : next);
+    }},
+    {shapes: [Box, OuterWalls], test(a, b) {
+        let candidates = [
+            {nx: +1, ny: 0, d: (a._anchor.x + a.shape.left) - (b._anchor.x + b.shape.left)},
+            {nx: -1, ny: 0, d: (b._anchor.x + b.shape.right) - (a._anchor.x + a.shape.right)},
+            {nx: 0, ny: +1, d: (a._anchor.y + a.shape.top) - (b._anchor.y + b.shape.top)},
+            {nx: 0, ny: -1, d: (b._anchor.y + b.shape.bottom) - (a._anchor.y + a.shape.bottom)},
+        ].filter(c => c.d <= 0);
+
+        if (candidates.length == 0) {
+            return null;
+        }
+
+        let coll = candidates.reduce((prev, next) => ({nx: prev.nx + next.nx, ny: prev.ny + next.ny, d: -1 * (prev.d**2 + next.d**2)**0.5}));
+
+        let n = (coll.nx**2 + coll.ny**2)**0.5;
+
+        if (n != 0) {
+            coll.nx /= n;
+            coll.ny /= n;
+        }
+
+        return coll;
+    }}
+];
+
+function massFactors(ma, mb) {
+    if (ma == Infinity) {
+        if (mb == Infinity) {
+            return [0, 0];
+        } else {
+            return [0, 1];
+        }
+    } else if (mb == Infinity) {
+        return [1, 0];
+    } else if (ma + mb == 0) {
+        return [0, 0];
+    } else {
+        let f = ma / (ma + mb);
+        return [1-f, f];
+    }
+}
+
+function resolve(a, b, {nx, ny, d}) {
+    if (nx == 0 && ny == 0) {
+        // no surface normal -> no resolution
+        return;
+    }
+
+    // calculate velocities along surface normal
+    let va_n = a.vx * nx + a.vy * ny;
+    let vb_n = b.vx * nx + b.vy * ny;
+
+    // adjust positions
+    let [fa, fb] = massFactors(a.shape.mass, b.shape.mass);
+
+    a.x -= fa * d * nx;
+    a.y -= fa * d * ny;
+
+    b.x += fb * d * nx;
+    b.y += fb * d * ny;
+
+    // adjust velocities
+    if (va_n < 0) {
+        a.vx -= va_n * nx;
+        a.vy -= va_n * ny;
+    }
+
+    if (vb_n > 0) {
+        b.vx += vb_n * nx;
+        b.vy += vb_n * ny;
+    }
+
+    // TODO: physical correctness
+
+    a.updateTransform();
+    b.updateTransform();
+}
+
+function collide(a, b) {
+    for (let test of collisionTests) {
+        if (b.shape instanceof test.shapes[0] && a.shape instanceof test.shapes[1])
+            [a, b] = [b, a];
+
+        if (a.shape instanceof test.shapes[0] && b.shape instanceof test.shapes[1]) {
+            let coll = test.test(a, b);
+            if (coll) {
+                resolve(a, b, coll);
+            }
+            return coll;
         }
     }
 }
