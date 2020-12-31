@@ -17,7 +17,7 @@ export default async function start({canvas}) {
             'waiting fast': image.frames({i: 17, n: 1, delay: Infinity}),
             'moving slow': image.frames({i: 4, n: 6, delay: 100}),
             'moving fast': image.frames({i: 18, n: 6, delay: 100}),
-            'frozen': [image.frame({i: 14, delay: 50}), image.frame({i: 16, delay: 50})]
+            'kissing': [image.frame({i: 17, delay: 400}), image.frame({i: 16, delay: 100})],
         }];
     })));
 
@@ -54,12 +54,18 @@ export default async function start({canvas}) {
 
             for (let {other, nx, ny} of this.touches) {
                 if (other instanceof Player) {
-                    if (other.frozen <= 0) {
+                    if (ny != 0) {
+                        this.x -= 4 * nx;
+                        this.y -= 4 * ny;
+
+                        other.x += 4 * nx;
+                        other.y += 4 * ny;
+                    } else if (other.frozen <= 0) {
                         this.frozen = 500;
                         other.frozen = 500;
 
-                        this.state = 'frozen';
-                        other.state = 'frozen';
+                        this.state = 'kissing';
+                        other.state = 'kissing';
 
                         if (this.x < other.x) {
                             this.scaleX = 1;
@@ -69,11 +75,11 @@ export default async function start({canvas}) {
                             other.scaleX = 1;
                         }
 
-                        this.x -= 5 * nx;
-                        this.y -= 5 * ny;
+                        this.x -= 8 * nx;
+                        this.y -= 8 * ny;
 
-                        other.x += 5 * nx;
-                        other.y += 5 * ny;
+                        other.x += 8 * nx;
+                        other.y += 8 * ny;
 
                         this.parent.addChild(new Heart({x: (this.x + other.x)/2, y: (this.y + other.y)/2}));
 
@@ -145,8 +151,8 @@ export default async function start({canvas}) {
         constructor(props) {
             super({
                 sprite: new ImageSprite(images.heart),
-                timer: 1000,
-                alpha: 1.0,
+                timer: 1400,
+                alpha: 0,
                 vy: -1/100,
                 ...props
             });
@@ -159,9 +165,11 @@ export default async function start({canvas}) {
                 return;
             }
 
-            this.scaleX += dt / 1000;
-            this.scaleY += dt / 1000;
-            this.alpha -= dt / 1000;
+            if (this.timer < 1000) {
+                this.scaleX += dt / 1000;
+                this.scaleY += dt / 1000;
+                this.alpha = this.timer / 1000;
+            }
         }
     }
 
@@ -203,7 +211,7 @@ export default async function start({canvas}) {
                     new Player({input: new ArrowsInput(), x: 200, y: 200, spriteSheet: images[1]})
                 ];
             } else {
-                this.players = gamepads.map((g, i) => new Player({input: new GamepadInput(g), x: 100 + 50 * i, y: 100 + 50 * i, spriteSheet: images[i]}));
+                this.players = gamepads.map((g, i) => new Player({input: new GamepadInput(g), x: 50 + 50 * i, y: 50 + 50 * i, spriteSheet: images[i]}));
             }
 
             this.players.forEach(p => this.addChild(p));
