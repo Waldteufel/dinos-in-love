@@ -10,8 +10,8 @@
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "loadImage": () => /* binding */ loadImage,
-/* harmony export */   "ImageAsset": () => /* binding */ ImageAsset
+/* harmony export */   "loadImage": () => (/* binding */ loadImage),
+/* harmony export */   "ImageAsset": () => (/* binding */ ImageAsset)
 /* harmony export */ });
 async function loadImage(name) {
     let img = new Image();
@@ -81,7 +81,7 @@ class ImageAsset {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => /* binding */ Entity
+/* harmony export */   "default": () => (/* binding */ Entity)
 /* harmony export */ });
 let nextId = 1;
 
@@ -179,7 +179,7 @@ class Entity {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => /* binding */ start
+/* harmony export */   "default": () => (/* binding */ start)
 /* harmony export */ });
 /* harmony import */ var _assets__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./assets */ "./src/assets.js");
 /* harmony import */ var _scene__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./scene */ "./src/scene.js");
@@ -212,7 +212,7 @@ async function start({canvas}) {
 
     images.heart = await _assets__WEBPACK_IMPORTED_MODULE_0__.ImageAsset.load({src: 'heart.png', dx: -8, dy: -16}).then(i => i.frames());
 
-    class Player extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
+    class Player extends _entity__WEBPACK_IMPORTED_MODULE_2__["default"] {
         constructor(props = {}) {
             super({
                 _state: null,
@@ -304,7 +304,7 @@ async function start({canvas}) {
         }
     }
 
-    class StartText extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
+    class StartText extends _entity__WEBPACK_IMPORTED_MODULE_2__["default"] {
         constructor(props) {
             super({
                 _timer: 1000,
@@ -336,7 +336,7 @@ async function start({canvas}) {
         }
     }
 
-    class Heart extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
+    class Heart extends _entity__WEBPACK_IMPORTED_MODULE_2__["default"] {
         constructor(props) {
             super({
                 sprite: new _sprites__WEBPACK_IMPORTED_MODULE_3__.ImageSprite(images.heart),
@@ -362,7 +362,7 @@ async function start({canvas}) {
         }
     }
 
-    class Walls extends _entity__WEBPACK_IMPORTED_MODULE_2__.default {
+    class Walls extends _entity__WEBPACK_IMPORTED_MODULE_2__["default"] {
         constructor(props) {
             super({
                 shape: new _shapes__WEBPACK_IMPORTED_MODULE_5__.OuterWalls({mass: Infinity, top: 16, left: 10, right: 310, bottom: 240}),
@@ -371,7 +371,7 @@ async function start({canvas}) {
         }
     }
 
-    return new class extends _scene__WEBPACK_IMPORTED_MODULE_1__.default {
+    return new class extends _scene__WEBPACK_IMPORTED_MODULE_1__["default"] {
         constructor(props = {}) {
             super(props);
 
@@ -412,54 +412,6 @@ async function start({canvas}) {
 
 /***/ }),
 
-/***/ "./src/index.js":
-/*!**********************!*\
-  !*** ./src/index.js ***!
-  \**********************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _game_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./game.js */ "./src/game.js");
-
-
-function animate(g) {
-    let t0 = performance.now();
-
-    function frame(t1) {
-        let dt = t1 - t0;
-        t0 = t1;
-
-        let {done} = g.next(dt);
-        if (!done) {
-            requestAnimationFrame(frame);
-        }
-    }
-
-    requestAnimationFrame(frame);
-}
-
-window.addEventListener('load', async () => {
-    let canvas = document.getElementById('main-canvas');
-    let ctx = canvas.getContext('2d', {alpha: true});
-    ctx.imageSmoothingEnabled = false;
-
-    let scene = await (0,_game_js__WEBPACK_IMPORTED_MODULE_0__.default)({canvas});
-
-    function* main() {
-        while (true) {
-            let dt = yield;
-
-            scene.updateAll(dt);
-            scene.drawAll(ctx, canvas);
-        }
-    }
-
-    animate(main());
-})
-
-
-/***/ }),
-
 /***/ "./src/input.js":
 /*!**********************!*\
   !*** ./src/input.js ***!
@@ -468,9 +420,9 @@ window.addEventListener('load', async () => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "ArrowsInput": () => /* binding */ ArrowsInput,
-/* harmony export */   "WASDInput": () => /* binding */ WASDInput,
-/* harmony export */   "GamepadInput": () => /* binding */ GamepadInput
+/* harmony export */   "ArrowsInput": () => (/* binding */ ArrowsInput),
+/* harmony export */   "WASDInput": () => (/* binding */ WASDInput),
+/* harmony export */   "GamepadInput": () => (/* binding */ GamepadInput)
 /* harmony export */ });
 class ArrowsInput {
     constructor() {
@@ -616,14 +568,14 @@ class GamepadInput {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => /* binding */ Scene
+/* harmony export */   "default": () => (/* binding */ Scene)
 /* harmony export */ });
 /* harmony import */ var _entity__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./entity */ "./src/entity.js");
 /* harmony import */ var _shapes__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./shapes */ "./src/shapes.js");
 
 
 
-class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__.default {
+class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__["default"] {
     constructor(props = {}) {
         super(props);
     }
@@ -706,11 +658,11 @@ class Scene extends _entity__WEBPACK_IMPORTED_MODULE_0__.default {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "Shape": () => /* binding */ Shape,
-/* harmony export */   "Box": () => /* binding */ Box,
-/* harmony export */   "OuterWalls": () => /* binding */ OuterWalls,
-/* harmony export */   "resolve": () => /* binding */ resolve,
-/* harmony export */   "collide": () => /* binding */ collide
+/* harmony export */   "Shape": () => (/* binding */ Shape),
+/* harmony export */   "Box": () => (/* binding */ Box),
+/* harmony export */   "OuterWalls": () => (/* binding */ OuterWalls),
+/* harmony export */   "resolve": () => (/* binding */ resolve),
+/* harmony export */   "collide": () => (/* binding */ collide)
 /* harmony export */ });
 class Shape {
     constructor(props = {}) {
@@ -856,8 +808,8 @@ function collide(a, b) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "ImageSprite": () => /* binding */ ImageSprite,
-/* harmony export */   "TextSprite": () => /* binding */ TextSprite
+/* harmony export */   "ImageSprite": () => (/* binding */ ImageSprite),
+/* harmony export */   "TextSprite": () => (/* binding */ TextSprite)
 /* harmony export */ });
 class ImageSprite {
     constructor(frames = []) {
@@ -910,8 +862,9 @@ class TextSprite {
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
 /******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
@@ -942,7 +895,7 @@ class TextSprite {
 /******/ 	
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */
 /******/ 	(() => {
-/******/ 		__webpack_require__.o = (obj, prop) => Object.prototype.hasOwnProperty.call(obj, prop)
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/make namespace object */
@@ -957,10 +910,53 @@ class TextSprite {
 /******/ 	})();
 /******/ 	
 /************************************************************************/
-/******/ 	// startup
-/******/ 	// Load entry module
-/******/ 	__webpack_require__("./src/index.js");
-/******/ 	// This entry module used 'exports' so it can't be inlined
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _game_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./game.js */ "./src/game.js");
+
+
+function animate(g) {
+    let t0 = performance.now();
+
+    function frame(t1) {
+        let dt = t1 - t0;
+        t0 = t1;
+
+        let {done} = g.next(dt);
+        if (!done) {
+            requestAnimationFrame(frame);
+        }
+    }
+
+    requestAnimationFrame(frame);
+}
+
+window.addEventListener('load', async () => {
+    let canvas = document.getElementById('main-canvas');
+    let ctx = canvas.getContext('2d', {alpha: true});
+    ctx.imageSmoothingEnabled = false;
+
+    let scene = await (0,_game_js__WEBPACK_IMPORTED_MODULE_0__["default"])({canvas});
+
+    function* main() {
+        while (true) {
+            let dt = yield;
+
+            scene.updateAll(dt);
+            scene.drawAll(ctx, canvas);
+        }
+    }
+
+    animate(main());
+})
+
+})();
+
 /******/ })()
 ;
 //# sourceMappingURL=main.js.map
